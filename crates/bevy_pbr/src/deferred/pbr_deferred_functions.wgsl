@@ -121,8 +121,6 @@ fn deferred_output(in: VertexOutput, pbr_input: PbrInput) -> FragmentOutput {
 #endif
 
     return out;
-}
-#endif
 
 
 // Creates a PbrInput from the deferred gbuffer.
@@ -153,3 +151,5 @@ fn prepass_pbr_input(position: vec4<f32>) -> PbrInput {
 
     return pbr_input;
 }
+}
+#endif
