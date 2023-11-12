@@ -97,18 +97,28 @@ fn setup(
     ));
 
     // Opaque cube
+    // commands.spawn((
+    //     MaterialMeshBundle {
+    //         mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+    //         material: materials.add(CustomMaterial {
+    //             color: Color::WHITE,
+    //             color_texture: Some(asset_server.load("branding/icon.png")),
+    //             alpha_mode: AlphaMode::Opaque,
+    //         }),
+    //         transform: Transform::from_xyz(-1.0, 0.5, 0.0),
+    //         ..default()
+    //     },
+    //     Rotates,
+    // ));
+
+    // Flight Helmet
     commands.spawn((
-        MaterialMeshBundle {
-            mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-            material: materials.add(CustomMaterial {
-                color: Color::WHITE,
-                color_texture: Some(asset_server.load("branding/icon.png")),
-                alpha_mode: AlphaMode::Opaque,
-            }),
-            transform: Transform::from_xyz(-1.0, 0.5, 0.0),
-            ..default()
-        },
-        Rotates,
+    SceneBundle {
+        transform: Transform::from_xyz(-1.0, 1.0, 0.0).with_scale(Vec3::ONE * 2.0),
+        scene: asset_server.load("models/FlightHelmet/FlightHelmet.gltf#Scene0"),
+        ..default()
+    },
+    Rotates,
     ));
 
     // Cube with alpha mask
@@ -135,6 +145,10 @@ fn setup(
         transform: Transform::from_xyz(1.0, 0.5, 0.0),
         ..default()
     });
+
+
+
+
 
     // light
     commands.spawn(PointLightBundle {
@@ -243,28 +257,48 @@ fn toggle_prepass_view(
     mut materials: ResMut<Assets<PrepassOutputMaterial>>,
     mut text: Query<&mut Text>,
 ) {
-    if keycode.just_pressed(KeyCode::Space) {
-        *prepass_view = *prepass_view + 1;
-        let prepass_view = *prepass_view; 
-        let label = match prepass_view {
-            0 => "transparent",
-            1 => "depth",
-            2 => "normals",
-            3 => "motion vectors",
-            _ => "deferred",
-        };
-        let mut text = text.single_mut();
-        text.sections[0].value = format!("Prepass Output: {label}\n");
-        for section in &mut text.sections {
-            section.style.color = Color::WHITE;
-        }
+    let mut dirty = false;
+    if keycode.just_pressed(KeyCode::R) {
+        *prepass_view = 0;
+        dirty = true;
+    }
 
-        let handle = material_handle.single();
-        let mat = materials.get_mut(handle).unwrap();
-        mat.settings.show_depth = (prepass_view == 1) as u32;
-        mat.settings.show_normals = (prepass_view == 2) as u32;
-        mat.settings.show_motion_vectors = (prepass_view == 3) as u32;
-        mat.settings.show_deferred_data = (prepass_view >= 4) as u32;
-        mat.settings.prepass_view = prepass_view;
+    if keycode.just_pressed(KeyCode::Space) {
+        *prepass_view += 1;
+        
+        dirty  = true;
+
+    }
+
+    if keycode.just_pressed(KeyCode::Back) {
+        *prepass_view -= 1;
+        
+        dirty  = true;
+
+    }
+
+    if dirty {
+    
+    let prepass_view = *prepass_view; 
+    let label = match prepass_view {
+        0 => "combined",
+        1 => "depth",
+        2 => "normals",
+        3 => "motion vectors",
+        _ => "deferred",
+    };
+    let mut text = text.single_mut();
+    text.sections[0].value = format!("Prepass {prepass_view} Output: {label}\n");
+    for section in &mut text.sections {
+        section.style.color = Color::WHITE;
+    }
+
+    let handle = material_handle.single();
+    let mat = materials.get_mut(handle).unwrap();
+    mat.settings.show_depth = (prepass_view == 1) as u32;
+    mat.settings.show_normals = (prepass_view == 2) as u32;
+    mat.settings.show_motion_vectors = (prepass_view == 3) as u32;
+    mat.settings.show_deferred_data = (prepass_view >= 4) as u32;
+    mat.settings.prepass_view = prepass_view;
     }
 }
