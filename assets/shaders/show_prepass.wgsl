@@ -24,12 +24,13 @@ fn fragment(
     let sample_index = 0u;
 #endif
 
-        let depth = bevy_pbr::prepass_utils::prepass_depth(mesh.position, sample_index);
+        // let depth = bevy_pbr::prepass_utils::prepass_depth(mesh.position, sample_index);
         let normal = bevy_pbr::prepass_utils::prepass_normal(mesh.position, sample_index);
         let motion_vector = bevy_pbr::prepass_utils::prepass_motion_vector(mesh.position, sample_index);
         let pbr_input = bevy_pbr::pbr_deferred_functions::prepass_pbr_input(mesh.position);
         let material = pbr_input.material;
- 
+        let depth = pbr_input.frag_coord.z;
+        
         switch settings.prepass_view {
             case 0u: { return vec4(0.0); }
             case 1u: { return vec4(depth, depth, depth, 1.0); }

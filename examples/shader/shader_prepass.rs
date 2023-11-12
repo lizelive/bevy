@@ -3,14 +3,19 @@
 //! The textures are not generated for any material using alpha blending.
 
 use bevy::{
-    core_pipeline::prepass::{DepthPrepass, MotionVectorPrepass, NormalPrepass},
-    pbr::{NotShadowCaster, PbrPlugin},
+    core_pipeline::fxaa::Fxaa,
+    core_pipeline::prepass::{DepthPrepass, MotionVectorPrepass, NormalPrepass, DeferredPrepass},
+    pbr::{NotShadowCaster, PbrPlugin, DefaultOpaqueRendererMethod},
     prelude::*,
     reflect::TypePath,
     render::render_resource::{AsBindGroup, ShaderRef, ShaderType},
+    window::{PresentMode, WindowPlugin, WindowResolution},
 };
-use bevy_internal::{pbr::DefaultOpaqueRendererMethod, core_pipeline::{prepass::DeferredPrepass, fxaa::Fxaa}};
 
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
+
+
+const RESOLUTION : f32 = 1024.0 * 2.0;
 fn main() {
     App::new()
         .add_plugins((
@@ -20,6 +25,14 @@ fn main() {
                 //
                 // prepass_enabled: false,
                 ..default()
+            }).set(WindowPlugin {
+                primary_window: Some(Window {
+                    present_mode: PresentMode::AutoNoVsync,
+                    resolution: WindowResolution::new(RESOLUTION, RESOLUTION)
+                        .with_scale_factor_override(1.0),
+                    ..default()
+                }),
+                ..default()
             }),
             MaterialPlugin::<CustomMaterial>::default(),
             MaterialPlugin::<PrepassOutputMaterial> {
@@ -28,6 +41,8 @@ fn main() {
                 prepass_enabled: false,
                 ..default()
             },
+            LogDiagnosticsPlugin::default(),
+            FrameTimeDiagnosticsPlugin::default(),
         ))
         .add_systems(Startup, setup)
         .add_systems(Update, (rotate, toggle_prepass_view))
@@ -65,12 +80,6 @@ fn setup(
         DeferredPrepass,
 
         Fxaa::default(),
-
-        // fancy lighting
-        EnvironmentMapLight {
-            diffuse_map: asset_server.load("environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
-            specular_map: asset_server.load("environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
-        },
     ));
 
     // plane
