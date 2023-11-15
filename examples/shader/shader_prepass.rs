@@ -65,7 +65,7 @@ fn setup(
     // camera
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(-2.0, 3., 5.0).looking_at(Vec3::ZERO, Vec3::Y),
+            transform: Transform::from_xyz(-12.0, 13., 15.0).looking_at(Vec3::ZERO, Vec3::Y),
             ..default()
         },
         // To enable the prepass you need to add the components associated with the ones you need
@@ -83,27 +83,27 @@ fn setup(
     ));
 
     // plane
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(shape::Plane::from_size(5.0).into()),
-        material: std_materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
-        ..default()
-    });
+    // commands.spawn(PbrBundle {
+    //     mesh: meshes.add(shape::Plane::from_size(5.0).into()),
+    //     material: std_materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+    //     ..default()
+    // });
 
-    // A quad that shows the outputs of the prepass
-    // To make it easy, we just draw a big quad right in front of the camera.
-    // For a real application, this isn't ideal.
-    commands.spawn((
-        MaterialMeshBundle {
-            mesh: meshes.add(shape::Quad::new(Vec2::new(20.0, 20.0)).into()),
-            material: depth_materials.add(PrepassOutputMaterial {
-                settings: ShowPrepassSettings::default(),
-            }),
-            transform: Transform::from_xyz(-0.75, 1.25, 3.0)
-                .looking_at(Vec3::new(2.0, -2.5, -5.0), Vec3::Y),
-            ..default()
-        },
-        NotShadowCaster,
-    ));
+    // // A quad that shows the outputs of the prepass
+    // // To make it easy, we just draw a big quad right in front of the camera.
+    // // For a real application, this isn't ideal.
+    // commands.spawn((
+    //     MaterialMeshBundle {
+    //         mesh: meshes.add(shape::Quad::new(Vec2::new(20.0, 20.0)).into()),
+    //         material: depth_materials.add(PrepassOutputMaterial {
+    //             settings: ShowPrepassSettings::default(),
+    //         }),
+    //         transform: Transform::from_xyz(-0.75, 1.25, 3.0)
+    //             .looking_at(Vec3::new(2.0, -2.5, -5.0), Vec3::Y),
+    //         ..default()
+    //     },
+    //     NotShadowCaster,
+    // ));
 
     // Opaque cube
     // commands.spawn((
@@ -124,36 +124,36 @@ fn setup(
     commands.spawn((
     SceneBundle {
         transform: Transform::from_xyz(-1.0, 1.0, 0.0).with_scale(Vec3::ONE * 2.0),
-        scene: asset_server.load("models/FlightHelmet/FlightHelmet.gltf#Scene0"),
+        scene: asset_server.load("models/objaverse/002b5dcd1a7844b19c7ffa63a9b23c68.glb#Scene0"),
         ..default()
     },
     Rotates,
     ));
 
-    // Cube with alpha mask
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::UVSphere { radius: 0.5, sectors: 36, stacks: 18 })),
-        material: std_materials.add(StandardMaterial {
-            alpha_mode: AlphaMode::Mask(1.0),
-            base_color_texture: Some(asset_server.load("branding/icon.png")),
-            ..default()
-        }),
-        transform: Transform::from_xyz(0.0, 0.5, 0.0),
-        ..default()
-    });
+    // // Cube with alpha mask
+    // commands.spawn(PbrBundle {
+    //     mesh: meshes.add(Mesh::from(shape::UVSphere { radius: 0.5, sectors: 36, stacks: 18 })),
+    //     material: std_materials.add(StandardMaterial {
+    //         alpha_mode: AlphaMode::Mask(1.0),
+    //         base_color_texture: Some(asset_server.load("branding/icon.png")),
+    //         ..default()
+    //     }),
+    //     transform: Transform::from_xyz(0.0, 0.5, 0.0),
+    //     ..default()
+    // });
 
-    // Cube with alpha blending.
-    // Transparent materials are ignored by the prepass
-    commands.spawn(MaterialMeshBundle {
-        mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-        material: materials.add(CustomMaterial {
-            color: Color::WHITE,
-            color_texture: Some(asset_server.load("branding/icon.png")),
-            alpha_mode: AlphaMode::Blend,
-        }),
-        transform: Transform::from_xyz(1.0, 0.5, 0.0),
-        ..default()
-    });
+    // // Cube with alpha blending.
+    // // Transparent materials are ignored by the prepass
+    // commands.spawn(MaterialMeshBundle {
+    //     mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
+    //     material: materials.add(CustomMaterial {
+    //         color: Color::WHITE,
+    //         color_texture: Some(asset_server.load("branding/icon.png")),
+    //         alpha_mode: AlphaMode::Blend,
+    //     }),
+    //     transform: Transform::from_xyz(1.0, 0.5, 0.0),
+    //     ..default()
+    // });
 
 
 
@@ -227,7 +227,7 @@ struct Rotates;
 fn rotate(mut q: Query<&mut Transform, With<Rotates>>, time: Res<Time>) {
     for mut t in q.iter_mut() {
         let rot = (time.elapsed_seconds().sin() * 0.5 + 0.5) * std::f32::consts::PI * 2.0;
-        t.rotation = Quat::from_rotation_z(rot);
+        t.rotation = Quat::from_rotation_y(rot);
     }
 }
 
