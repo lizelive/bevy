@@ -124,7 +124,7 @@ use crate::{
     storage::{SparseSetIndex, TableId, TableRow},
 };
 use alloc::vec::Vec;
-use bevy_platform::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
+use bevy_platform::sync::atomic::{AtomicU32, AtomicU64, AtomicUsize, Ordering};
 use core::{fmt, hash::Hash, mem, num::NonZero, panic::Location};
 use log::warn;
 
@@ -1257,6 +1257,67 @@ pub struct EntityLocation {
     pub table_row: TableRow,
 }
 
+/// Stores an [`Entity`] in an atomically-updatable container.
+///
+/// This type provides a small wrapper around [`AtomicU64`] specialized to store
+/// `Entity` ids. It supports atomic read/write/modify operations.
+///
+/// All operations use `Ordering::Relaxed`, which provides atomicity but no
+/// synchronization guarantees beyond that. This is generally sufficient when
+/// storing and swapping entity ids that are used in contexts where ordering
+/// across threads is not required. If stronger synchronization is required,
+/// the caller should provide appropriate ordering or a higher-level locking
+/// mechanism.
+///
+/// # Notes
+/// - This type is intended for cases where an entity id needs to be updated
+///   atomically and read frequently without blocking.
+pub struct AtomicEntity(AtomicU64);
+
+impl AtomicEntity {
+    /// Creates a new `AtomicEntity` initialized with the provided `Entity`.
+    ///
+    /// This is a const function and simply wraps the given entity bits into
+    /// an [`AtomicU64`] value.
+    pub const fn from_entity(from: Entity) -> Self {
+        Self(AtomicU64::new(from.to_bits()))
+    }
+
+    /// Atomically loads the currently stored `Entity` value.
+    ///
+    /// This uses `Ordering::Relaxed`, so it guarantees atomicity but not
+    /// any cross-thread memory ordering semantics.
+    pub fn load(&self) -> Entity {
+        Entity::from_bits(self.0.load(Ordering::Relaxed))
+    }
+
+    /// Consumes this `AtomicEntity` and returns the stored `Entity` value.
+    ///
+    /// Since this takes ownership, it extracts the inner value without
+    /// performing an atomic load (it uses `into_inner`). This is only valid
+    /// when the caller owns the instance (e.g., at initialization time or
+    /// teardown).
+    pub const fn to_entity(self) -> Entity {
+        Entity::from_bits(self.0.into_inner())
+    }
+
+    /// Stores `from` into the underlying atomic, replacing the previous value.
+    ///
+    /// Uses `Ordering::Relaxed` for the store so the operation is atomic but
+    /// does not provide memory ordering guarantees beyond that.
+    pub fn replace(&self, from: Entity) {
+        self.0.store(from.to_bits(), Ordering::Relaxed)
+    }
+
+    /// Atomically swaps the current value with `from`, returning the old value.
+    ///
+    /// This returns the previous `Entity` as an owned value and uses
+    /// `Ordering::Relaxed` for the operation.
+    pub fn swap(&self, from: Entity) -> Entity {
+        Entity::from_bits(self.0.swap(from.to_bits(), Ordering::Relaxed))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1517,6 +1578,47 @@ mod tests {
         let entity = Entity::PLACEHOLDER;
         let string = format!("{entity}");
         assert_eq!(string, "PLACEHOLDER");
+    }
+
+    #[test]
+    fn atomic_entity_basic_ops() {
+        use core::mem::size_of;
+
+        // Create two different entities with different indices and generations.
+        let e1 = Entity::from_index_and_generation(
+            EntityIndex::from_raw_u32(1).unwrap(),
+            EntityGeneration::from_bits(0),
+        );
+        let e2 = Entity::from_index_and_generation(
+            EntityIndex::from_raw_u32(2).unwrap(),
+            EntityGeneration::from_bits(1),
+        );
+
+        // Initialize AtomicEntity
+        let atomic = AtomicEntity::from_entity(e1);
+        assert_eq!(atomic.load(), e1);
+
+        // Replace and verify
+        atomic.replace(e2);
+        assert_eq!(atomic.load(), e2);
+
+        // Swap returns previous value and updates the stored value
+        let prev = atomic.swap(e1);
+        assert_eq!(prev, e2);
+        assert_eq!(atomic.load(), e1);
+
+        // Consuming `to_entity` yields the stored value
+        let atomic_owned = AtomicEntity::from_entity(e2);
+        assert_eq!(atomic_owned.to_entity(), e2);
+
+        // Sanity: ensure the AtomicEntity is the size of an AtomicU64
+        assert_eq!(size_of::<AtomicEntity>(), size_of::<AtomicU64>());
+    }
+
+    #[test]
+    fn atomic_entity_alignment_matches_entity() {
+        use core::mem::align_of;
+        assert_eq!(align_of::<Entity>(), align_of::<AtomicEntity>());
     }
 
     #[test]
